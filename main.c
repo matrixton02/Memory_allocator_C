@@ -69,3 +69,34 @@ void chunk_list_merge(chunk_list* temp,chunk_list* list){
         }
    }
 }
+
+void* heap_alloc(size_t size_bytes){
+    const size_t size_words=(size_bytes+sizeof(uintptr_t)-1)/sizeof(uintptr_t);
+    if(size_words>0){
+        chunk_list_merge(&temp_chunks,&freed_chunks);
+        freed_chunks=temp_chunks;
+        for(size_t i=0;i<freed_chunks.count;i++){
+            const chunk mychunk=freed_chunks.chunks[i];
+            if(mychunk.size>=size_words){
+                chunk_list_remove(&freed_chunks,i);
+    
+                const size_t rest_size=mychunk.size-size_words;
+                chunk_list_insert(&alloced_chunks,mychunk.start,size_words);
+                if(rest_size>0){
+                    chunk_list_insert(&freed_chunks,mychunk.start+size_words,rest_size);
+                }
+                return mychunk.start;
+            }
+        }
+    }
+    return NULL;
+}
+void heap_free(void* ptr){
+    if(ptr!=NULL){
+        const int index=chunk_list_find(&alloced_chunks,ptr);
+        if(index>=0 && ptr==alloced_chunks.chunks[index].start){
+            chunk_list_insert(&freed_chunks,alloced_chunks.chunks[index].start,alloced_chunks.chunks[index].size);
+            chunk_list_remove(&alloced_chunks,(size_t)index);
+        }
+    }
+}
