@@ -10,6 +10,13 @@ chunk_list freed_chunks={
 };
 chunk_list temp_chunks={0};
 
+void chunk_list_dump(const chunk_list* list){
+    printf("Chunk (%zu):\n",list->count);
+    for(size_t i=0;i<list->count;i++){
+        printf("Start: %p, size:%zu\n",(void*)list->chunks[i].start,list->chunks[i].size);
+    }
+}
+
 int chunk_list_find(const chunk_list* list,uintptr_t* ptr){
     int left=0;
     int right=list->count;
