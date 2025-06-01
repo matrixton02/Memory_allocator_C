@@ -1,17 +1,23 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include "heap.h"
 
 uintptr_t heap[HEAP_CAP]={0};
+bool reachable_chunks[CHUNK_LIST_CAP]={0};
+void* to_free[CHUNK_LIST_CAP]={0};
+size_t to_free_count=0;
 
+const uintptr_t* stack_base=0;
 chunk_list alloced_chunks={0};
 chunk_list freed_chunks={
     .count=1,
-    .chunks={[0]={.start=heap,.size=sizeof(heap)}},
+    .chunks={[0]={.start=heap,.size=HEAP_CAP}},
 };
 chunk_list temp_chunks={0};
 
-void chunk_list_dump(const chunk_list* list){
-    printf("Chunk (%zu):\n",list->count);
+void chunk_list_dump(const chunk_list* list,const char* name){
+    printf("%s Chunk (%zu):\n",name,list->count);
     for(size_t i=0;i<list->count;i++){
         printf("Start: %p, size:%zu\n",(void*)list->chunks[i].start,list->chunks[i].size);
     }
@@ -107,7 +113,34 @@ void heap_free(void* ptr){
         }
     }
 }
-
+static void mark_region(const uintptr_t *start,const uintptr_t* end){
+    for(;start<end;start+=1){
+        const uintptr_t* p=(const uintptr_t*)*start;
+        for(size_t i=0;i<alloced_chunks.count;i++){
+            chunk Chunk=alloced_chunks.chunks[i];
+            if(Chunk.start<=p && p<Chunk.start+Chunk.size){
+                if(!reachable_chunks[i]){
+                    reachable_chunks[i]=true;
+                    mark_region(Chunk.start,Chunk.start+Chunk.size);
+                }
+            }
+        }
+    }
+}
 void heap_collect(){
-    todo;
+    const uintptr_t* stack_start=(const uintptr_t*)__builtin_frame_address(0);
+    memset(reachable_chunks,0,sizeof(reachable_chunks));
+    mark_region(stack_start,stack_base+1);
+
+    to_free_count=0;
+    for(size_t i=0;i<alloced_chunks.count;i++){
+        // printf("Start: %p size %zu reachable %s\n",alloced_chunks.chunks[i].start,alloced_chunks.chunks[i].size,reachable_chunks[i]?"true":"false");
+        if(!reachable_chunks[i]){
+            to_free[to_free_count++]=alloced_chunks.chunks[i].start;
+        }
+    }
+
+    for(size_t i=0;i<to_free_count;i++){
+        heap_free((void*)to_free[i]);
+    }
 }
