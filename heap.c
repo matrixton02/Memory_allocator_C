@@ -92,7 +92,7 @@ void* heap_alloc(size_t size_bytes){
                 if(rest_size>0){
                     chunk_list_insert(&freed_chunks,mychunk.start+size_words,rest_size);
                 }
-                return mychunk.start;
+                return (void*) mychunk.start;
             }
         }
     }

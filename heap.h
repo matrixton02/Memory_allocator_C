@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#define HEAP_CAP 640000
+#define HEAP_CAP_BYTES 640000
+#define HEAP_CAP (HEAP_CAP_BYTES/sizeof(uintptr_t))
 extern uintptr_t heap[HEAP_CAP];
 
 #define todo\
